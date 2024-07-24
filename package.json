@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "npx promises-aplus-tests promise.js"
+    "test": "npx promises-aplus-tests ./src/index.js"
   },
   "keywords": [],
   "author": "",

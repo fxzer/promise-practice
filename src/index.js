@@ -85,7 +85,6 @@ class Promise {
       //   this.onRejectedCallbacks.shift()(reason); // 发布 emit
       // }
     }
-
     // 创建 Promise 实例时立即执行 executor
     try {
       executor(resolve.bind(this), reject.bind(this));
@@ -141,8 +140,7 @@ class Promise {
               const x = onRejected(this.reason)
               resolvePromise(promise2, x, resolve, reject)
             } catch (error) {
-              console.log('[ error ]-140', error)
-
+              reject(error)
             }
 
           });
@@ -164,37 +162,50 @@ Promise.all = function (values) {
     const result = []
     let index = 0 // 解决多个异步并发问题
 
-    function processData(i,data) {
+    function processData(i, data) {
       result[i] = data;
       // 放 2 个同步，index:2  length: 8 ，全部执行完毕才 resolve
       if (++index === values.length) { // ?
         resolve(result);
-      } 
+      }
     }
 
     for (let i = 0; i < values.length; i++) {
       let current = values[i];
       if (isPromise(current.then)) {
-        current.then((data) =>{
-          processData(i,data)
-        },reject);
+        current.then((data) => {
+          processData(i, data)
+        }, reject);
       } else {
-          processData(i,current)
+        processData(i, current)
       }
     }
   })
 }
 
 Promise.resolve = function (value) {
+  if (typeof value === 'object' || typeof value === 'function') {
+    try {
+      var then = value.then;
+      if (typeof then === 'function') {
+        return new Promise(then.bind(value));
+      }
+    } catch (e) {
+      return new Promise(function (resolve, reject) {
+        reject(e);
+      });
+    }
+  } else {
+    return new Promise((resolve, reject) => {
+      resolve(value)
+    })
+  }
+}
+Promise.reject = function (reason) {
   return new Promise((resolve, reject) => {
-    isFunction(value) ? resolve(value()) : reject(value)
+    reject(reason);
   })
 }
-// Promise.reject = function (reason) {
-//   return new Promise((resolve, reject) => {
-//     reject(reason);
-//   })
-// }
 
 
 // 测试 
