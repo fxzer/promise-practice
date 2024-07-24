@@ -7,7 +7,7 @@ const isFunction = (x) => {
 }
 
 const isPromise = (x) => {
-  return (x !== null && (typeof x === "object" || typeof x === "function")) && typeof x.then === "function";
+  return (x !== null && (typeof x === "object" || isFunction(x))) && isFunction(x.then);
 }
 
 const resolvePromise = (promise2, x, resolve, reject) => {
@@ -18,10 +18,10 @@ const resolvePromise = (promise2, x, resolve, reject) => {
 
   let called = false; // 防止多次调用，保证只调用一次，例：失败了再调用成功
   // 判断 x 的值是否 promise，若 x 是 Promise，执行 x.then，并递归调用 resolvePromise
-  if (x !== null && (typeof x === "object" || typeof x === "function")) {
+  if (x !== null && (typeof x === "object" || isFunction(x))) {
     try {
       let then = x.then;
-      if (typeof then === "function") {
+      if (isFunction(then)) {
         then.call( // 省去再次读取 x.then 的过程，避免可能的再次报错
           x,
           (y) => { // y: onFulfilled 的返回值
@@ -66,9 +66,10 @@ class Promise {
         this.status = FULFILLED;
         this.value = value;
         // 执行成功回调
-        while (this.onFulfilledCallbacks.length) {
-          this.onFulfilledCallbacks.shift()(value); // 发布
-        }
+        this.onFulfilledCallbacks.forEach(fn => fn());
+        // while (this.onFulfilledCallbacks.length) {
+        //   this.onFulfilledCallbacks.shift()(value); // 发布
+        // }
       }
     }
 
@@ -79,9 +80,10 @@ class Promise {
         this.reason = reason;
       }
       // 执行拒因回调
-      while (this.onRejectedCallbacks.length) {
-        this.onRejectedCallbacks.shift()(reason); // 发布 emit
-      }
+      this.onRejectedCallbacks.forEach(fn => fn());
+      // while (this.onRejectedCallbacks.length) {
+      //   this.onRejectedCallbacks.shift()(reason); // 发布 emit
+      // }
     }
 
     // 创建 Promise 实例时立即执行 executor
@@ -102,7 +104,7 @@ class Promise {
       if (this.status === FULFILLED) {
         setTimeout(() => { // 宏任务, 在 new Promise后执行，保证 promise2 存在
           try {
-            let x = onFulfilled(this.value);
+            const x = onFulfilled(this.value);
             resolvePromise(promise2, x, resolve, reject);
           }
           catch (error) { // 捕获 then 中的异常
@@ -112,7 +114,7 @@ class Promise {
       } else if (this.status === REJECTED) {
         setTimeout(() => {
           try {
-            let x = onRejected(this.reason);
+            const x = onRejected(this.reason);
             resolvePromise(promise2, x, resolve, reject);
           }
           catch (error) {
@@ -124,10 +126,26 @@ class Promise {
       // 异步情况
       if (this.status === PENDING) {
         this.onFulfilledCallbacks.push(() => { // 订阅 on
-          onFulfilled(this.value)
+          setTimeout(() => {
+            try {
+              const x = onFulfilled(this.value)
+              resolvePromise(promise2, x, resolve, reject)
+            } catch (error) {
+              reject(error)
+            }
+          })
         });
         this.onRejectedCallbacks.push(() => {
-          onRejected(this.reason)
+          setTimeout(() => {
+            try {
+              const x = onRejected(this.reason)
+              resolvePromise(promise2, x, resolve, reject)
+            } catch (error) {
+              console.log('[ error ]-140', error)
+
+            }
+
+          });
         });
       }
     })
@@ -141,8 +159,45 @@ class Promise {
     }
   }
 }
-// 测试
+Promise.all = function (values) {
+  return new Promise((resolve, reject) => {
+    const result = []
+    let index = 0 // 解决多个异步并发问题
 
+    function processData(i,data) {
+      result[i] = data;
+      // 放 2 个同步，index:2  length: 8 ，全部执行完毕才 resolve
+      if (++index === values.length) { // ?
+        resolve(result);
+      } 
+    }
+
+    for (let i = 0; i < values.length; i++) {
+      let current = values[i];
+      if (isPromise(current.then)) {
+        current.then((data) =>{
+          processData(i,data)
+        },reject);
+      } else {
+          processData(i,current)
+      }
+    }
+  })
+}
+
+Promise.resolve = function (value) {
+  return new Promise((resolve, reject) => {
+    isFunction(value) ? resolve(value()) : reject(value)
+  })
+}
+// Promise.reject = function (reason) {
+//   return new Promise((resolve, reject) => {
+//     reject(reason);
+//   })
+// }
+
+
+// 测试 
 Promise.defer = Promise.deferred = function () {
   const dfd = {};
   dfd.promise = new Promise((resolve, reject) => {

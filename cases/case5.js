@@ -1,6 +1,6 @@
 // 可选参数
 
-const Promise = require('../promise');
+const Promise = require('../src/index.js');
 
 const p = new Promise((resolve, reject) => {
   resolve('Success');
