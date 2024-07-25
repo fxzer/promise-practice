@@ -52,7 +52,7 @@ class Promise {
   constructor(executor) {
     this.status = PENDING;
 
-    this.value = undefined; // 成功值
+    this.value = undefined; // 终值
     this.reason = undefined; // 拒因
 
     this.onFulfilledCallbacks = []; // 成功回调
@@ -104,6 +104,7 @@ class Promise {
         setTimeout(() => { // 宏任务, 在 new Promise后执行，保证 promise2 存在
           try {
             const x = onFulfilled(this.value);
+            console.log('[ x ]-107', x)
             resolvePromise(promise2, x, resolve, reject);
           }
           catch (error) { // 捕获 then 中的异常
@@ -219,5 +220,3 @@ Promise.defer = Promise.deferred = function () {
 }
 
 module.exports = Promise;
-
-
