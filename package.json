@@ -6,7 +6,9 @@
   "scripts": {
     "test": "npx promises-aplus-tests ./src/index.js",
     "test-x": "npx promises-aplus-tests ./src/index-x.js",
-    "test-y": "npx promises-aplus-tests ./src/index-y.js"
+    "test-y": "npx promises-aplus-tests ./src/index-y.js",
+    "test-g": "npx promises-aplus-tests ./src/chatgpt.js",
+    "test-c": "npx promises-aplus-tests ./src/claude.js"
   },
   "keywords": [],
   "author": "",
