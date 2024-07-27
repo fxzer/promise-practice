@@ -192,7 +192,7 @@ class MyPromise {
       });
     });
   }
-
+  // 用于处理多个 Promise 实例，只要有一个实例率先改变状态，新的 Promise 实例的状态就跟着改变
   static any(promises) {
     return new MyPromise((resolve, reject) => {
       if (!Array.isArray(promises)) {

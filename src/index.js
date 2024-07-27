@@ -92,7 +92,19 @@ class Promise {
       reject(error);
     }
   }
-
+  static resolve(value) {
+    if (isPromise(value)) {
+      return value
+    }
+    return new Promise((resolve, reject) => {
+      resolve(value)
+    })
+  }
+  static reject(reason) {
+    return new Promise((resolve, reject) => {
+      reject(reason)
+    })
+  }
   then(onFulfilled, onRejected) {
     // 参数可选情况
     onFulfilled = isFunction(onFulfilled) ? onFulfilled : (value) => value;
@@ -110,7 +122,9 @@ class Promise {
             reject(error);
           }
         });
-      } else if (this.status === REJECTED) {
+      }
+
+      if (this.status === REJECTED) {
         setTimeout(() => {
           try {
             const x = onRejected(this.reason);
@@ -142,7 +156,6 @@ class Promise {
             } catch (error) {
               reject(error)
             }
-
           });
         });
       }
@@ -156,87 +169,87 @@ class Promise {
       onRejected(this.reason);
     }
   }
-}
-Promise.all = function (values) {
-  return new Promise((resolve, reject) => {
-    const result = []
-    let index = 0 // 解决多个异步并发问题
 
-    function processData(i, data) {
-      result[i] = data;
-      // 放 2 个同步，index:2  length: 8 ，全部执行完毕才 resolve
-      if (++index === values.length) { // ?
-        resolve(result);
+  static race(values) {
+    return new Promise((resolve, reject) => {
+      if(!Array.isArray(values)){
+        return reject(new TypeError(`${values} is not iterable`))
       }
-    }
-
-    for (let i = 0; i < values.length; i++) {
-      let current = values[i];
-      if (isPromise(current)) {
-        current.then((data) => {
-          processData(i, data)
-        }, reject);
-      } else {
-        processData(i, current)
+      if(values.length === 0){
+        return
       }
-    }
-  })
-}
-
-Promise.race = function (values) {
-  return new Promise((resolve, reject) => {
-    for (let i = 0; i < values.length; i++) {
-      let current = values[i];
-      if (isPromise(current.then)) {
-        current.then(resolve, reject)
-      } else {
-        resolve(current)
+      for (let i = 0; i < values.length; i++) {
+        let current = values[i];
+        if (isPromise(current.then)) {
+          current.then(resolve, reject)
+        } else {
+          resolve(current)
+        }
       }
-    }
-  })
-}
+    })
+  }
 
-Promise.allSettled = function (values) {
-  return new Promise((resolve, reject) => {
-    const result = []
-    let index = 0 // 解决多个异步并发问题
+  static all(values) {
+    return new Promise((resolve, reject) => {
+      const result = []
+      let index = 0 // 解决多个异步并发问题
 
-    function processData(i, value, status) {
-      result[i] = {
-        status,
-        value
-      };
-      // 放 2 个同步，index:2  length: 8 ，全部执行完毕才 resolve
-      if (++index === values.length) { // ?
-        resolve(result);
+      function processData(i, data) {
+        result[i] = data;
+        // 放 2 个同步，index:2  length: 8 ，全部执行完毕才 resolve
+        if (++index === values.length) { // ?
+          resolve(result);
+        }
       }
-    }
 
-    for (let i = 0; i < values.length; i++) {
-      let current = values[i];
-      if (isPromise(current)) {
-        current.then((data) => {
-          processData(i, data, 'fulfilled')
-        }, (reason) => {
-          processData(i, reason, 'rejected')
-        });
-      } else {
-        processData(i, current, 'fulfilled')
+      for (let i = 0; i < values.length; i++) {
+        let current = values[i];
+        if (isPromise(current)) {
+          current.then((data) => {
+            processData(i, data)
+          }, reject);
+        } else {
+          processData(i, current)
+        }
       }
-    }
-  })
+    })
+  }
+
+  static allSettled(values) {
+    return new Promise((resolve, reject) => {
+      const result = []
+      let index = 0 // 解决多个异步并发问题
+
+      function processData(i, value, status) {
+        result[i] = {
+          status,
+          value
+        };
+        // 放 2 个同步，index:2  length: 8 ，全部执行完毕才 resolve
+        if (++index === values.length) { // ?
+          resolve(result);
+        }
+      }
+
+      for (let i = 0; i < values.length; i++) {
+        let current = values[i];
+        if (isPromise(current)) {
+          current.then((data) => {
+            processData(i, data, 'fulfilled')
+          }, (reason) => {
+            processData(i, reason, 'rejected')
+          });
+        } else {
+          processData(i, current, 'fulfilled')
+        }
+      }
+    })
+  }
+
 }
 
-Promise.resolve = function (value) {
-  return new Promise((resolve, reject) => {
-    resolve(value)
-  })
-}
-Promise.reject = function (reason) {
-  return new Promise((resolve, reject) => {
-    reject(reason)
-  })
-}
+
+
 // 测试 
 Promise.defer = Promise.deferred = function () {
   const dfd = {};
