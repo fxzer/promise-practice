@@ -104,7 +104,6 @@ class Promise {
         setTimeout(() => { // 宏任务, 在 new Promise后执行，保证 promise2 存在
           try {
             const x = onFulfilled(this.value);
-            console.log('[ x ]-107', x)
             resolvePromise(promise2, x, resolve, reject);
           }
           catch (error) { // 捕获 then 中的异常
@@ -173,12 +172,56 @@ Promise.all = function (values) {
 
     for (let i = 0; i < values.length; i++) {
       let current = values[i];
-      if (isPromise(current.then)) {
+      if (isPromise(current)) {
         current.then((data) => {
           processData(i, data)
         }, reject);
       } else {
         processData(i, current)
+      }
+    }
+  })
+}
+
+Promise.race = function (values) {
+  return new Promise((resolve,reject) => {
+    for(let i = 0; i < values.length; i++) {
+      let current = values[i];
+      if(isPromise(current.then)) {
+        current.then(resolve,reject)
+      } else {
+        resolve(current)
+      }
+    }
+  })
+}
+
+Promise.allSettled = function (values) {
+  return new Promise((resolve, reject) => {
+    const result = []
+    let index = 0 // 解决多个异步并发问题
+
+    function processData(i, value, status) {
+      result[i] = {
+        status,
+        value
+      };
+      // 放 2 个同步，index:2  length: 8 ，全部执行完毕才 resolve
+      if (++index === values.length) { // ?
+        resolve(result);
+      }
+    }
+
+    for (let i = 0; i < values.length; i++) {
+      let current = values[i];
+      if (isPromise(current)) {
+        current.then((data) => {
+          processData(i, data, 'fulfilled')
+        }, (reason) => {
+          processData(i, reason, 'rejected')
+        });
+      } else {
+        processData(i, current, 'fulfilled')
       }
     }
   })
