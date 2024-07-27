@@ -12,3 +12,11 @@
 缺点：
 5. 是基于回调的，无法终止异步，一旦创建，Promise 将开始执行，且无法中途取消
 6. 状态不可逆，一旦状态改变，就不会再变，限制灵活性
+
+## Promise 实现
+ - .then
+ - .resolve
+ - .reject
+ - .all
+ - .allSettled 
+ - .race

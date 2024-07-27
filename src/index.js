@@ -184,11 +184,11 @@ Promise.all = function (values) {
 }
 
 Promise.race = function (values) {
-  return new Promise((resolve,reject) => {
-    for(let i = 0; i < values.length; i++) {
+  return new Promise((resolve, reject) => {
+    for (let i = 0; i < values.length; i++) {
       let current = values[i];
-      if(isPromise(current.then)) {
-        current.then(resolve,reject)
+      if (isPromise(current.then)) {
+        current.then(resolve, reject)
       } else {
         resolve(current)
       }
@@ -228,30 +228,15 @@ Promise.allSettled = function (values) {
 }
 
 Promise.resolve = function (value) {
-  if (typeof value === 'object' || typeof value === 'function') {
-    try {
-      var then = value.then;
-      if (typeof then === 'function') {
-        return new Promise(then.bind(value));
-      }
-    } catch (e) {
-      return new Promise(function (resolve, reject) {
-        reject(e);
-      });
-    }
-  } else {
-    return new Promise((resolve, reject) => {
-      resolve(value)
-    })
-  }
+  return new Promise((resolve, reject) => {
+    resolve(value)
+  })
 }
 Promise.reject = function (reason) {
   return new Promise((resolve, reject) => {
-    reject(reason);
+    reject(reason)
   })
 }
-
-
 // 测试 
 Promise.defer = Promise.deferred = function () {
   const dfd = {};
